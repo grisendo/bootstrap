@@ -1,0 +1,30 @@
+{
+    "name": "angular-ui/bootstrap",
+    "description": "Native AngularJS (Angular) directives for Twitter's Bootstrap",
+    "type": "component",
+    "homepage": "http://angular-ui.github.io/bootstrap/",
+    "license": "MIT",
+    "support": {
+        "irc": "irc://irc.freenode.org/angularjs",
+        "issues": "https://github.com/angular-ui/bootstrap/issues",
+        "wiki": "https://github.com/angular-ui/bootstrap/wiki",
+        "source": "https://github.com/angular-ui/bootstrap"
+    },
+    "require": {
+        "components/jquery": "*",
+        "components/angular.js": "*",
+        "twitter/bootstrap": "*"
+    },
+    "extra": {
+        "component": {
+            "scripts": [
+                "ui-bootstrap.js",
+                "ui-bootstrap-tpls.js"
+            ],
+            "files": [
+                "ui-bootstrap.min.js",
+                "ui-bootstrap-tpls.min.js"
+            ]
+        }
+    }
+}
