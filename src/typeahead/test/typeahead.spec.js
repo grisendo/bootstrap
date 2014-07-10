@@ -131,15 +131,23 @@ describe('typeahead tests', function () {
     it('should open and close typeahead based on matches', function () {
       var element = prepareInputEl('<div><input ng-model="result" typeahead="item for item in source | filter:$viewValue"></div>');
       var inputEl = findInput(element);
+      var ownsId = inputEl.attr('aria-owns');
+
       expect(inputEl.attr('aria-expanded')).toBe('false');
+      expect(inputEl.attr('aria-activedescendant')).toBeUndefined();
 
       changeInputValueTo(element, 'ba');
       expect(element).toBeOpenWithActive(2, 0);
+      expect(findDropDown(element).attr('id')).toBe(ownsId);
       expect(inputEl.attr('aria-expanded')).toBe('true');
+      var activeOptionId = ownsId + '-option-0';
+      expect(inputEl.attr('aria-activedescendant')).toBe(activeOptionId);
+      expect(findDropDown(element).find('li.active').attr('id')).toBe(activeOptionId);
 
       changeInputValueTo(element, '');
       expect(element).toBeClosed();
       expect(inputEl.attr('aria-expanded')).toBe('false');
+      expect(inputEl.attr('aria-activedescendant')).toBeUndefined();
     });
 
     it('should not open typeahead if input value smaller than a defined threshold', function () {
@@ -507,6 +515,25 @@ describe('typeahead tests', function () {
       expect(element).toBeClosed();
     });
 
+    it('should properly update loading callback if an element is not focused', function () {
+
+      $scope.items = function(viewValue) {
+        return $timeout(function(){
+          return [viewValue];
+        });
+      };
+      var element = prepareInputEl('<div><input ng-model="result" typeahead-loading="isLoading" typeahead="item for item in items($viewValue)"></div>');
+      var inputEl = findInput(element);
+
+      changeInputValueTo(element, 'match');
+      $scope.$digest();
+
+      inputEl.blur();
+      $timeout.flush();
+
+      expect($scope.isLoading).toBeFalsy();
+    });
+
     it('issue 1140 - should properly update loading callback when deleting characters', function () {
 
       $scope.items = function(viewValue) {
@@ -555,6 +582,23 @@ describe('typeahead tests', function () {
       changeInputValueTo(element, 'bar');
 
       expect(element).toBeOpenWithActive(2, 0);
+    });
+
+    it('issue #1773 - should not trigger an error when used with ng-focus', function () {
+
+      var element = prepareInputEl('<div><input ng-model="result" typeahead="item for item in source | filter:$viewValue" ng-focus="foo()"></div>');
+      var inputEl = findInput(element);
+
+      // Note that this bug can only be found when element is in the document
+      $document.find('body').append(element);
+      // Extra teardown for this spec
+      this.after(function () { element.remove(); });
+
+      changeInputValueTo(element, 'b');
+      var match = $(findMatches(element)[1]).find('a')[0];
+
+      $(match).click();
+      $scope.$digest();
     });
   });
 
