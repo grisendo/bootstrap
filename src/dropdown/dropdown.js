@@ -5,7 +5,7 @@ angular.module('ui.bootstrap.dropdown', [])
 })
 
 .service('dropdownService', ['$document', function($document) {
-  var self = this, openScope = null;
+  var openScope = null;
 
   this.open = function( dropdownScope ) {
     if ( !openScope ) {
@@ -28,7 +28,11 @@ angular.module('ui.bootstrap.dropdown', [])
     }
   };
 
-  var closeDropdown = function() {
+  var closeDropdown = function( evt ) {
+    if (evt && evt.isDefaultPrevented()) {
+        return;
+    }
+
     openScope.$apply(function() {
       openScope.isOpen = false;
     });
@@ -36,6 +40,7 @@ angular.module('ui.bootstrap.dropdown', [])
 
   var escapeKeyBind = function( evt ) {
     if ( evt.which === 27 ) {
+      openScope.focusToggleElement();
       closeDropdown();
     }
   };
@@ -71,17 +76,26 @@ angular.module('ui.bootstrap.dropdown', [])
     return scope.isOpen;
   };
 
-  scope.$watch('isOpen', function( value ) {
-    $animate[value ? 'addClass' : 'removeClass'](self.$element, openClass);
+  scope.focusToggleElement = function() {
+    if ( self.toggleElement ) {
+      self.toggleElement[0].focus();
+    }
+  };
 
-    if ( value ) {
+  scope.$watch('isOpen', function( isOpen, wasOpen ) {
+    $animate[isOpen ? 'addClass' : 'removeClass'](self.$element, openClass);
+
+    if ( isOpen ) {
+      scope.focusToggleElement();
       dropdownService.open( scope );
     } else {
       dropdownService.close( scope );
     }
 
-    setIsOpen($scope, value);
-    toggleInvoker($scope, { open: !!value });
+    setIsOpen($scope, isOpen);
+    if (angular.isDefined(isOpen) && isOpen !== wasOpen) {
+      toggleInvoker($scope, { open: !!isOpen });
+    }
   });
 
   $scope.$on('$locationChangeSuccess', function() {
@@ -112,21 +126,28 @@ angular.module('ui.bootstrap.dropdown', [])
         return;
       }
 
-      element.bind('click', function(event) {
-        event.preventDefault();
-        event.stopPropagation();
+      dropdownCtrl.toggleElement = element;
 
-        if ( !element.hasClass('disabled') && !element.prop('disabled') ) {
+      var toggleDropdown = function(event) {
+        event.preventDefault();
+
+        if ( !element.hasClass('disabled') && !attrs.disabled ) {
           scope.$apply(function() {
             dropdownCtrl.toggle();
           });
         }
-      });
+      };
+
+      element.bind('click', toggleDropdown);
 
       // WAI-ARIA
       element.attr({ 'aria-haspopup': true, 'aria-expanded': false });
       scope.$watch(dropdownCtrl.isOpen, function( isOpen ) {
         element.attr('aria-expanded', !!isOpen);
+      });
+
+      scope.$on('$destroy', function() {
+        element.unbind('click', toggleDropdown);
       });
     }
   };
